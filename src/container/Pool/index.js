@@ -7,12 +7,12 @@ import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Input from "@mui/material/Input";
-
-import InputAdornment from "@mui/material/InputAdornment";
+import dayjs from "dayjs";
 import FormControl from "@mui/material/FormControl";
 import { ethers } from "ethers";
 import { useRecoilValue, useRecoilState } from "recoil";
-
+import duration from "dayjs/plugin/duration";
+import relativeTime from "dayjs/plugin/relativeTime";
 import config from "../../utils/config";
 import { getTokenContract, useControllerContract } from "./../../hooks/index";
 import { useWeb3React } from "@web3-react/core";
@@ -20,12 +20,14 @@ import { formatEther } from "@ethersproject/units";
 import styled from "@emotion/styled";
 import { CustomModalBox, ContainerBox } from "../../utils/style";
 import {
-  tvlState,
+  usdtTvlState,
   nextRewardState,
   scfBalanceState,
-  tokenBalanceState,
+  usdtBalanceState,
   selectedTokenState,
   pendingTimeState,
+  usdcBalanceState,
+  usdcTvlState,
 } from "../../utils/states";
 import { Alert, Snackbar } from "@mui/material";
 import TokenSelection from "../../components/TokenSelection";
@@ -33,16 +35,19 @@ import TokenSelection from "../../components/TokenSelection";
 const MAX_ALLOWANCE = ethers.BigNumber.from(
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 );
-
+dayjs.extend(duration);
+dayjs.extend(relativeTime);
 const APPROVE_LEAST_AMOUNT = ethers.BigNumber.from("10000000000");
 
 function Pool() {
   const { library, account } = useWeb3React();
 
-  const [tvl, setTvl] = useRecoilState(tvlState);
+  const [usdtTvl, setUsdtTvl] = useRecoilState(usdtTvlState);
+  const [usdcTvl, setUsdcTvl] = useRecoilState(usdcTvlState);
   const [nextReward, setNextReward] = useRecoilState(nextRewardState);
   const [pendingTime, setPendingTime] = useRecoilState(pendingTimeState);
-  const [tokenBalance, setTokenBalance] = useRecoilState(tokenBalanceState);
+  const [usdtBalance, setUsdtBalance] = useRecoilState(usdtBalanceState);
+  const [usdcBalance, setUsdcBalance] = useRecoilState(usdcBalanceState);
   const [scfBalance, setSCFBalance] = useRecoilState(scfBalanceState);
   const [allowance, setAllowance] = useState(true);
   const [reload, setReload] = useState(false);
@@ -78,6 +83,18 @@ function Pool() {
         account
       );
 
+      const usdtContract = getTokenContract(
+        library,
+        config.tokens["USDT"],
+        account
+      );
+
+      const usdcContract = getTokenContract(
+        library,
+        config.tokens["USDC"],
+        account
+      );
+
       const scfContract = getTokenContract(
         library,
         config.tokens["SCF"],
@@ -85,20 +102,59 @@ function Pool() {
       );
 
       try {
-        const token = await tokenContract.balanceOf(account);
-        const tokenFormatted = parseFloat(
-          formatEther(token.toString())
-        ).toFixed(0);
-        if (!stale) {
-          setTokenBalance(tokenFormatted);
+        const tokenAllowance = await tokenContract.allowance(
+          account,
+          config.controller
+        );
+
+        if (!tokenAllowance.gt(APPROVE_LEAST_AMOUNT) && !stale) {
+          setAllowance(false);
         }
       } catch (e) {
         console.log(e);
       }
 
       try {
+        const usdtLocked = await controllerContract.LOCKED(
+          config.tokens["USDT"]
+        );
+        const usdtTvlLocked = parseInt(usdtLocked / 1000000);
+
+        if (!stale) setUsdtTvl(usdtTvlLocked);
+
+        const usdcLocked = await controllerContract.LOCKED(
+          config.tokens["USDC"]
+        );
+        const usdcTvlLocked = parseInt(usdcLocked / 1000000);
+
+        if (!stale) setUsdcTvl(usdcTvlLocked);
+      } catch (e) {
+        console.log(e);
+      }
+
+      try {
+        const token = await usdtContract.balanceOf(account);
+        const tokenFormatted = parseFloat(
+          formatEther(token.toString())
+        ).toFixed(4);
+        if (!stale) setUsdtBalance(tokenFormatted);
+      } catch (e) {
+        console.log(e);
+      }
+
+      try {
+        const token = await usdcContract.balanceOf(account);
+        const tokenFormatted = parseFloat(
+          formatEther(token.toString())
+        ).toFixed(4);
+        if (!stale) setUsdcBalance(tokenFormatted);
+      } catch (e) {
+        console.log(e);
+      }
+
+      try {
         const scf = await scfContract.balanceOf(account);
-        const scfFormatted = parseFloat(formatEther(scf.toString())).toFixed(0);
+        const scfFormatted = parseFloat(formatEther(scf.toString())).toFixed(4);
         if (!stale) {
           setSCFBalance(scfFormatted);
         }
@@ -107,56 +163,30 @@ function Pool() {
       }
 
       try {
-        const tokenAllowance = await tokenContract.allowance(
-          account,
-          config.controller
-        );
-
-        if (!tokenAllowance.gt(APPROVE_LEAST_AMOUNT)) {
-          setAllowance(false);
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    const initStatData = async () => {
-      try {
         const pendingBal = await controllerContract.pendingBal(account);
-        const pendingTimeVal = await controllerContract.pendingTime(account);
+        const pendingTimeVal = parseInt(
+          await controllerContract.pendingTime(account)
+        );
 
         const nextRewardAmount = parseInt(formatEther(pendingBal));
 
-        setNextReward(nextRewardAmount);
-        setPendingTime(parseInt(pendingTimeVal));
-      } catch (e) {
-        console.log(e);
-      }
+        if (!stale) setNextReward(nextRewardAmount);
 
-      try {
-        const diffx = 64456;
-        const locked = await controllerContract.LOCKED(
-          config.tokens[selectedToken]
-        );
-        const tvlLocked = diffx + parseInt(locked / 1000000);
-
-        setTvl(tvlLocked);
+        const currentTimeVal = Math.round(new Date().getTime() / 1000);
+        let inTime = pendingTimeVal - currentTimeVal;
+        if (!stale) setPendingTime(inTime);
       } catch (e) {
         console.log(e);
       }
     };
 
     initData();
-    initStatData();
-    setInterval(() => {
-      initStatData();
-    }, 20 * 1000);
 
     return () => {
       stale = true;
     };
     // eslint-disable-next-line
-  }, [reload, selectedToken]);
+  }, [reload, selectedToken, account]);
 
   const approve = async () => {
     const tokenContract = getTokenContract(
@@ -310,26 +340,51 @@ function Pool() {
   return (
     <>
       <ContainerBox component="div">
-        <TokenSelection />
-        <Heading variant="h4" component="h4" align="center">
-          Deposit ${selectedToken} to mint $SCF and win rewards
+        <Heading
+          variant="h4"
+          component="h4"
+          align="center"
+          sx={{ fontSize: 30, color: "#222" }}
+        >
+          <p>Mint $SCF using $USDT or $USDC</p>{" "}
+          <p>Lock your token for 10 days </p>
+          <p>Earn high rewards generated algorithmically</p>
         </Heading>
         <InfoBox>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={6}>
               <Typography variant="h5" component="h5" align="center">
-                ${tvl}
+                ${usdtTvl}
               </Typography>
               <Typography variant="p" component="p" align="center">
-                Total Value Locked
+                USDT TVL
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={6}>
               <Typography variant="h5" component="h5" align="center">
-                ${nextReward}
+                ${usdcTvl}
+              </Typography>
+              <Typography variant="p" component="p" align="center">
+                USDC TVL
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="h5" component="h5" align="center">
+                {nextReward} SCF
               </Typography>
               <Typography variant="p" component="p" align="center">
                 Your Next Reward
+              </Typography>
+            </Grid>
+
+            <Grid item xs={6}>
+              <Typography variant="h5" component="h5" align="center">
+                {pendingTime < 0
+                  ? "Right Now"
+                  : dayjs.duration({ seconds: pendingTime }).humanize(true)}
+              </Typography>
+              <Typography variant="p" component="p" align="center">
+                Claimable
               </Typography>
             </Grid>
           </Grid>
@@ -345,9 +400,7 @@ function Pool() {
               onChange={(event) => {
                 setAmount(event.target.value);
               }}
-              startAdornment={
-                <InputAdornment position="start">$</InputAdornment>
-              }
+              endAdornment={<TokenSelection />}
               label="Amount"
             />
           </FormControl>
@@ -355,19 +408,14 @@ function Pool() {
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <EntryBox>
-              <Typography variant="b" component="b" align="center">
-                {selectedToken} Balance
+              <Typography variant="p" component="p" align="center">
+                {usdtBalance} <b>USDT</b>
               </Typography>
               <Typography variant="p" component="p" align="center">
-                {tokenBalance} {selectedToken}
-              </Typography>
-            </EntryBox>
-            <EntryBox>
-              <Typography variant="b" component="b" align="center">
-                SCF Balance
+                {usdcBalance} <b>USDC</b>
               </Typography>
               <Typography variant="p" component="p" align="center">
-                {scfBalance} SCF
+                {scfBalance} <b>SCF</b>
               </Typography>
             </EntryBox>
             <MintButton
@@ -383,10 +431,11 @@ function Pool() {
             >
               Mint SCF with {selectedToken}
             </MintButton>
-            {pendingTime !== 0 && nextReward > 0 ? (
+            {nextReward > 0 && pendingTime < 0 ? (
               <ClaimButton
                 fullWidth
                 variant="contained"
+                color="secondary"
                 onClick={() => {
                   claimSCF();
                 }}
@@ -462,83 +511,54 @@ function Pool() {
 }
 
 const EntryBox = styled.div`
-  padding: 8px 16px;
-  background: rgba(15, 15, 15, 0.2);
   border-radius: 4px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  p {
+    padding: 0 16px;
+  }
 `;
 
 const MintButton = styled(Button)`
-  height: 70px;
+  height: 80px;
   font-size: 16px;
   font-weight: 600;
   margin: 24px 0 8px 0 !important;
-  background-image: linear-gradient(
-    to right,
-    #f3904f 0%,
-    #3b4371 51%,
-    #f3904f 100%
-  );
-
-  transition: 0.5s;
-  background-size: 200% auto;
-  box-shadow: 0 0 10px #333;
-  border-radius: 10px;
-  display: block;
-  text-transform: none;
-
-  &:hover {
-    background-position: right center; /* change the direction of the change here */
-    color: #fff;
-    text-decoration: none;
-  }
+  color: #fff;
+  border-radius: 40px;
 `;
 
 const ClaimButton = styled(Button)`
-  height: 70px;
+  height: 80px;
   font-size: 16px;
   font-weight: 600;
   margin: 24px 0 8px 0 !important;
-  background-image: linear-gradient(
-    to right,
-    #6612d9 0%,
-    #3b4371 51%,
-    #6612d9 100%
-  );
-
-  transition: 0.5s;
-  background-size: 200% auto;
-  box-shadow: 0 0 10px #333;
-  border-radius: 10px;
-  display: block;
-  text-transform: none;
-
-  &:hover {
-    background-position: right center; /* change the direction of the change here */
-    color: #fff;
-    text-decoration: none;
-  }
+  color: #fff;
+  border-radius: 40px;
 `;
 
 const Heading = styled(Typography)`
   margin: 36px 0;
   font-weight: 700;
+  padding: 0;
+  p {
+    padding: 0;
+    margin: 16px 0;
+  }
 `;
 
 const InfoBox = styled.div`
-  background: rgba(15, 15, 15, 0.2);
-  border-radius: 10px;
   padding: 24px 8px;
   margin-bottom: 24px;
   h5 {
-    font-weight: 700;
-    font-size: 32px;
-    color: #fed330;
+    font-weight: 600;
+    font-size: 30px;
+    color: #5352ed;
   }
   p {
-    font-size: 14px;
-    color: #e3e3e3;
+    margin-top: 4px;
+    font-size: 15px;
+    color: #555;
   }
 `;
 
@@ -548,21 +568,16 @@ const StepperBox = styled(Stepper)`
 
 const InputWrapper = styled.div`
   margin: 24px 0;
-  background: rgba(15, 15, 15, 0.2);
-  border-radius: 10px;
+  border: 3px solid #e3e3e3;
+  border-radius: 40px;
   overflow: hidden;
+  background: #fff;
 
   #standard-adornment-amount {
-    padding: 16px 8px;
-    font-size: 28px;
+    padding: 24px;
+    font-size: 30px;
     font-weight: 600;
     border: 0 !important;
-  }
-
-  .MuiInputAdornment-root p {
-    font-size: 24px;
-    color: #fed330;
-    padding-left: 16px;
   }
 
   .MuiInput-root::before,

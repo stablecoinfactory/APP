@@ -5,6 +5,7 @@ import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Paper from "@mui/material/Paper";
 import { useNavigate } from "react-router-dom";
 import WavesIcon from "@mui/icons-material/Waves";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import styled from "@emotion/styled";
 import { useWeb3React } from "@web3-react/core";
@@ -17,6 +18,11 @@ const pages = [
   {
     name: "Deposits",
     url: "/deposits",
+    icon: <PlaylistAddIcon />,
+  },
+  {
+    name: "Rewards",
+    url: "/rewards",
     icon: <EmojiEventsIcon />,
   },
 ];
@@ -58,8 +64,5 @@ export default function BottomNav() {
 }
 
 const BottomBar = styled(BottomNavigation)`
-  background: #2c3c60;
-  .MuiBottomNavigationAction-root.Mui-selected {
-    color: #fff !important;
-  }
+  background: #e9e9e9;
 `;

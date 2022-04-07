@@ -1,7 +1,12 @@
 import { atom } from "recoil";
 
-export const tvlState = atom({
-  key: "tvl",
+export const usdtTvlState = atom({
+  key: "usdtTvl",
+  default: 0,
+});
+
+export const usdcTvlState = atom({
+  key: "usdcTvl",
   default: 0,
 });
 
@@ -12,11 +17,16 @@ export const nextRewardState = atom({
 
 export const pendingTimeState = atom({
   key: "pendingTime",
+  default: -1,
+});
+
+export const usdtBalanceState = atom({
+  key: "usdtBalance",
   default: 0,
 });
 
-export const tokenBalanceState = atom({
-  key: "tokenBalance",
+export const usdcBalanceState = atom({
+  key: "usdcBalance",
   default: 0,
 });
 
@@ -27,6 +37,11 @@ export const scfBalanceState = atom({
 
 export const depositsState = atom({
   key: "deposits",
+  default: [],
+});
+
+export const rewardsState = atom({
+  key: "rewards",
   default: [],
 });
 

@@ -55,7 +55,7 @@ const Landing = (props) => {
         </div>
         <div>
           {!!error && (
-            <Alert severity="error">
+            <Alert severity="warning">
               <div
                 dangerouslySetInnerHTML={{ __html: getErrorMessage(error) }}
               />

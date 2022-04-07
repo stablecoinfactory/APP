@@ -22,57 +22,39 @@ export default function TokenSelection() {
     }
   };
   return (
-    <Grid
-      container
-      spacing={12}
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      style={{ marginBottom: 16 }}
-    >
-      <Grid item xs={12}>
-        <FormControl style={{ textAlign: "center" }}>
-          <Typography
-            variant="b"
-            component="b"
-            align="center"
-            style={{ marginBottom: 16 }}
-          >
-            Select your token
-          </Typography>
+    <Grid justifyContent="center" alignItems="end" style={{ marginRight: 16 }}>
+      <FormControl style={{ textAlign: "center" }}>
+        <ToggleButtonGroup
+          color="primary"
+          value={selectedToken}
+          onChange={changeToken}
+          exclusive
+        >
+          <ToggleButton value="USDT">
+            <img
+              height="28"
+              style={{ marginRight: 8 }}
+              src={usdtImage}
+              alt="USDT"
+            />
+            <Typography variant="p" component="p">
+              USDT
+            </Typography>
+          </ToggleButton>
 
-          <ToggleButtonGroup
-            color="secondary"
-            value={selectedToken}
-            onChange={changeToken}
-            exclusive
-          >
-            <ToggleButton value="USDT">
-              <img
-                height="28"
-                style={{ marginRight: 8 }}
-                src={usdtImage}
-                alt="USDT"
-              />
-              <Typography variant="p" component="p">
-                USDT
-              </Typography>
-            </ToggleButton>
-
-            <ToggleButton value="USDC">
-              <img
-                height="28"
-                style={{ marginRight: 8 }}
-                src={usdcImage}
-                alt="USDC"
-              />
-              <Typography variant="p" component="p">
-                USDC
-              </Typography>
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </FormControl>
-      </Grid>
+          <ToggleButton value="USDC">
+            <img
+              height="28"
+              style={{ marginRight: 8 }}
+              src={usdcImage}
+              alt="USDC"
+            />
+            <Typography variant="p" component="p">
+              USDC
+            </Typography>
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </FormControl>
     </Grid>
   );
 }

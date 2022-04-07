@@ -17,16 +17,16 @@ function getLibrary(provider) {
 function App() {
   const theme = createTheme({
     palette: {
-      mode: "dark",
+      mode: "light",
       primary: {
-        main: "#227093",
-        light: "#227093",
-        dark: "#227093",
+        main: "#218c74",
+        light: "#218c74",
+        dark: "#218c74",
       },
       secondary: {
-        main: "#ff5252",
-        light: "#ff5252",
-        dark: "#ff5252",
+        main: "#cd6133",
+        light: "#cd6133",
+        dark: "#cd6133",
       },
     },
     typography: {

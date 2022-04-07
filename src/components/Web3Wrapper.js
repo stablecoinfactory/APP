@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 
 const connectorsByName = {
   "Meta Mask": injected,
+  "Trust Wallet": injected,
   "Wallet Connect": walletconnect,
 };
 

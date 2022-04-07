@@ -6,18 +6,16 @@ import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import { useWeb3React } from "@web3-react/core";
-import { injected } from "../hooks/connectors";
 import { useENS } from "../hooks";
-import { Avatar } from "@mui/material";
+import { Avatar, Chip } from "@mui/material";
 import { Link } from "react-router-dom";
 import Grid from "@mui/material/Grid";
-import Drawer from "@mui/material/Drawer";
 import styled from "@emotion/styled";
-import { walletconnect } from "./../hooks/connectors";
 import { useLocation } from "react-router-dom";
 import { formatETHAddress } from "./../utils/index";
-import config from "../utils/config";
+import IconButton from "@mui/material/IconButton";
 
+import LogoutIcon from "@mui/icons-material/Logout";
 const pages = [
   {
     name: "Pool",
@@ -27,22 +25,14 @@ const pages = [
     name: "Deposits",
     url: "/deposits",
   },
+  {
+    name: "Rewards",
+    url: "/rewards",
+  },
 ];
 
 const Header = (props) => {
-  const [openDrawer, setOpenDrawer] = React.useState(false);
-
-  const toggleDrawer = (open) => (event) => {
-    if (
-      event.type === "keydown" &&
-      (event.key === "Tab" || event.key === "Shift")
-    ) {
-      return;
-    }
-
-    setOpenDrawer(open);
-  };
-  const { active, deactivate, account, connector, chainId } = useWeb3React();
+  const { active, deactivate, account, chainId } = useWeb3React();
   const { ensName, ensAvatar } = useENS(account);
 
   const [connectorName, setConnectorName] = useState("");
@@ -50,22 +40,15 @@ const Header = (props) => {
   React.useEffect(() => {
     const getConnector = () => {
       if (!account) return;
-
-      if (connector === injected) {
-        setConnectorName("Meta Mask");
-      }
-
-      if (connector === walletconnect) {
-        setConnectorName("Wallet Connect");
-      }
+      const connectionName = localStorage.getItem("connection");
+      setConnectorName(connectionName);
     };
     getConnector();
-  }, [account, chainId, connector, active, openDrawer]);
+  }, [account, chainId, active]);
 
   const disconnect = () => {
     deactivate();
     localStorage.removeItem("connection");
-    setOpenDrawer(false);
   };
 
   const location = useLocation();
@@ -81,12 +64,24 @@ const Header = (props) => {
           <Typography
             sx={{
               flexGrow: 1,
-              display: { xs: "flex", md: "flex" },
+              display: { xs: "none", md: "flex" },
               fontWeight: 700,
-              fontSize: 20,
+              fontSize: 24,
+              color: "#191919",
             }}
           >
-            Stable Coin Factory
+            STABLE COIN FACTORY
+          </Typography>
+          <Typography
+            sx={{
+              flexGrow: 1,
+              display: { xs: "flex", md: "none" },
+              fontWeight: 700,
+              fontSize: 18,
+              color: "#191919",
+            }}
+          >
+            STABLE COIN FACTORY
           </Typography>
           {active ? (
             <Box
@@ -99,8 +94,10 @@ const Header = (props) => {
                 <Link key={JSON.stringify(page)} to={page.url}>
                   <MenuButton
                     variant={
-                      location.pathname === page.url ? "contained" : "link"
+                      location.pathname === page.url ? "outlined" : "link"
                     }
+                    fullWidth
+                    color="secondary"
                     key={page.name}
                     sx={{
                       my: 2,
@@ -124,77 +121,61 @@ const Header = (props) => {
                 justifyContent="left"
                 alignItems="center"
               >
-                <Button variant="link" onClick={toggleDrawer(true)}>
-                  <Grid justifyContent="left" alignItems="center">
-                    <Grid
-                      container
-                      direction="row"
-                      justifyContent="center"
-                      display="flex"
-                      alignItems="center"
-                    >
-                      <Avatar
-                        src={
-                          ensAvatar
-                            ? ensAvatar
-                            : `https://avatars.dicebear.com/v2/male/${account}.svg`
-                        }
-                        sx={{
-                          width: 28,
-                          height: 28,
-                          marginLeft: 2,
-                          marginRight: 1,
-                        }}
-                      />
-                      <Typography component="p" sx={{ fontSize: 12 }}>
-                        {ensName || formatETHAddress(account)}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Button>
-
-                <Drawer
-                  anchor="right"
-                  open={openDrawer}
-                  onClose={toggleDrawer(false)}
-                >
-                  <SideDrawer sx={{ p: 2 }}>
-                    <ul>
-                      <li>
-                        <Typography component="h5">Connected From</Typography>
-                        <Typography component="p">{connectorName}</Typography>
-                      </li>
-                      <li>
-                        <Typography component="h5">Connected To</Typography>
-                        <Typography component="p">{config.network}</Typography>
-                      </li>
-                      <li>
-                        <Typography component="h5">Account Address</Typography>
-                        <Typography component="p">
-                          <a
-                            target="_blank"
-                            rel="noreferrer"
-                            href={`https://bscscan.com/address/${account}`}
-                          >
-                            {formatETHAddress(account)}
-                          </a>
+                <Grid justifyContent="left" alignItems="center">
+                  <Grid
+                    container
+                    direction="row"
+                    justifyContent="center"
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Avatar
+                      src={
+                        ensAvatar
+                          ? ensAvatar
+                          : `https://avatars.dicebear.com/v2/male/${account}.svg`
+                      }
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        marginLeft: 2,
+                        marginRight: 2,
+                      }}
+                    />
+                    <div>
+                      <Grid
+                        container
+                        direction="column"
+                        justifyContent="start"
+                        display="flex"
+                        alignItems="start"
+                      >
+                        <Typography component="p" sx={{ fontSize: 12 }}>
+                          {ensName || formatETHAddress(account)}
                         </Typography>
-                      </li>
-                    </ul>
-                    <Button
-                      variant="outlined"
+
+                        <Chip
+                          label={connectorName}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Grid>
+                    </div>
+
+                    <IconButton
                       fullWidth
                       onClick={disconnect}
                       color="error"
                       style={{
                         marginTop: 8,
                         marginBottom: 8,
+                        marginLeft: 8,
                       }}
                     >
-                      Disconnect Wallet
-                    </Button>
-                  </SideDrawer>
-                </Drawer>
+                      <LogoutIcon />
+                    </IconButton>
+                  </Grid>
+                </Grid>
               </Grid>
             ) : (
               <Button color="success" variant="outlined">
@@ -208,28 +189,9 @@ const Header = (props) => {
   );
 };
 
-const SideDrawer = styled(Box)`
-  width: 300px;
-  padding: 40px 16px;
-  ul {
-    list-style-type: none;
-    margin: 0;
-    margin-bottom: 24px;
-    padding: 0;
-    li {
-      font-size: 14px;
-      padding: 8px 0;
-      h5 {
-        font-weight: 800;
-      }
-    }
-  }
-`;
-
 const MenuButton = styled(Button)`
   text-transform: none;
   font-size: 16px;
-  color: #fff;
 `;
 
 export default Header;

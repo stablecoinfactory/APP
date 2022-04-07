@@ -9,12 +9,6 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  background-image: linear-gradient(
-    94.3deg,
-    #131933 110.9%,
-    rgba(81, 84, 115, 1) 87.1%
-  );
 }
 
 a {
@@ -23,14 +17,16 @@ a {
 }
 
 #app {
-  padding-bottom: 100px;
+  height: 100vh;
+  background: url(./images/bg.jpg) no-repeat center center;
+  background-size: cover;
 }
 
 .MuiDrawer-paper {
   background-image: linear-gradient(
     94.3deg,
-    rgba(26, 33, 64, 1) 110.9%,
-    rgba(81, 84, 115, 1) 87.1%
+    rgb(128, 129, 133) 110.9%,
+    rgb(252, 252, 252) 87.1%
   ) !important;
 }
 
@@ -41,7 +37,7 @@ a {
 .MuiPaper-rounded {
   background-image: linear-gradient(
     94.3deg,
-    rgba(26, 33, 64, 1) 110.9%,
-    rgba(81, 84, 115, 1) 87.1%
+    rgb(128, 129, 133) 110.9%,
+    rgb(252, 252, 252) 87.1%
   );
 }
