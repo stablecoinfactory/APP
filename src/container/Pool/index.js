@@ -347,8 +347,6 @@ function Pool() {
           sx={{ fontSize: 30, color: "#222" }}
         >
           <p>Mint $SCF using $USDT or $USDC</p>{" "}
-          <p>Lock your token for 10 days </p>
-          <p>Earn high rewards generated algorithmically</p>
         </Heading>
         <InfoBox>
           <Grid container spacing={2}>
