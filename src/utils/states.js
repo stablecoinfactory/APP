@@ -15,6 +15,12 @@ export const nextRewardState = atom({
   default: 0,
 });
 
+export const nextRewardTokenState = atom({
+  key: "nextRewardToken",
+  default: 0,
+});
+
+
 export const pendingTimeState = atom({
   key: "pendingTime",
   default: -1,
