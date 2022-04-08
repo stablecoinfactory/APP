@@ -72,7 +72,8 @@ const LandingBox = styled.div`
 `;
 
 const LandingImage = styled.img`
-  max-width: 650px;
+  max-width: 750px;
+  width: 100%;
   border: 0;
 `;
 

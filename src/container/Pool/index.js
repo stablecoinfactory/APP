@@ -16,7 +16,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import config from "../../utils/config";
 import { getTokenContract, useControllerContract } from "./../../hooks/index";
 import { useWeb3React } from "@web3-react/core";
-import { formatEther } from "@ethersproject/units";
+import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
 import styled from "@emotion/styled";
 import { CustomModalBox, ContainerBox } from "../../utils/style";
 import {
@@ -31,6 +31,7 @@ import {
 } from "../../utils/states";
 import { Alert, Snackbar } from "@mui/material";
 import TokenSelection from "../../components/TokenSelection";
+import axios from "axios";
 
 const MAX_ALLOWANCE = ethers.BigNumber.from(
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -52,6 +53,8 @@ function Pool() {
   const [allowance, setAllowance] = useState(true);
   const [reload, setReload] = useState(false);
   const [amount, setAmount] = useState(0);
+  const [estimatedScf, setEstimatedScf] = useState(0.0);
+  const [estimatedScfBonus, setEstimatedScfBonus] = useState(0.0);
 
   const [notification, setNotification] = useState({
     show: false,
@@ -59,12 +62,8 @@ function Pool() {
     message: "",
   });
 
-  const [open, setOpen] = useState(false);
-  const handleOpen = () => {
-    setActiveStep(0);
-    setOpen(true);
-  };
-  const handleClose = () => setOpen(false);
+  const [actionOpen, setActionOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Steppers
   const [activeStep, setActiveStep] = React.useState(0);
@@ -135,7 +134,7 @@ function Pool() {
       try {
         const token = await usdtContract.balanceOf(account);
         const tokenFormatted = parseFloat(
-          formatEther(token.toString())
+          formatUnits(token.toString(), 6)
         ).toFixed(4);
         if (!stale) setUsdtBalance(tokenFormatted);
       } catch (e) {
@@ -145,7 +144,7 @@ function Pool() {
       try {
         const token = await usdcContract.balanceOf(account);
         const tokenFormatted = parseFloat(
-          formatEther(token.toString())
+          formatUnits(token.toString(), 6)
         ).toFixed(4);
         if (!stale) setUsdcBalance(tokenFormatted);
       } catch (e) {
@@ -168,9 +167,15 @@ function Pool() {
           await controllerContract.pendingTime(account)
         );
 
-        const nextRewardAmount = parseInt(formatEther(pendingBal));
+        const nextRewardAmount = pendingBal.toString();
 
-        if (!stale) setNextReward(nextRewardAmount);
+        const nextRewardUSD = await axios
+          .get(
+            `https://polygon.api.0x.org/swap/v1/quote?sellToken=${config.tokens["SCF"]}&buyToken=${config.tokens[selectedToken]}&sellAmount=${nextRewardAmount}`
+          )
+          .then((res) => res.data.buyAmount);
+        const nextRewardUSDPrice = parseInt(parseInt(nextRewardUSD) / 1000000);
+        if (!stale) setNextReward(nextRewardUSDPrice);
 
         const currentTimeVal = Math.round(new Date().getTime() / 1000);
         let inTime = pendingTimeVal - currentTimeVal;
@@ -187,6 +192,53 @@ function Pool() {
     };
     // eslint-disable-next-line
   }, [reload, selectedToken, account]);
+
+  useEffect(() => {
+    let stale = false;
+    const fetchEstimated = async () => {
+      try {
+        const estimatedScf = await axios
+          .get(
+            `https://polygon.api.0x.org/swap/v1/quote?buyToken=${
+              config.tokens["SCF"]
+            }&sellToken=${config.tokens[selectedToken]}&sellAmount=${parseUnits(
+              amount.toString(),
+              6
+            )}`
+          )
+          .then((res) => res.data.buyAmount);
+        const estimatedScfPrice = parseInt(formatUnits(estimatedScf, 18));
+
+        const mult = await controllerContract.MULT();
+        const setEstimatedBonus = parseInt(
+          (estimatedScfPrice * parseInt(mult)) / 100
+        );
+
+        if (!stale) setEstimatedScfBonus(setEstimatedBonus);
+        if (!stale) setEstimatedScf(estimatedScfPrice);
+      } catch (e) {
+        if (!stale) setEstimatedScfBonus(0);
+        if (!stale) setEstimatedScf(0);
+      }
+    };
+
+    fetchEstimated();
+
+    return () => {
+      stale = true;
+    };
+  }, [amount, selectedToken, controllerContract]);
+
+  const handleActionOpen = () => {
+    setActiveStep(0);
+    setActionOpen(true);
+  };
+  const handleActionClose = () => setActionOpen(false);
+
+  const handleInfoOpen = () => {
+    setInfoOpen(true);
+  };
+  const handleInfoClose = () => setInfoOpen(false);
 
   const approve = async () => {
     const tokenContract = getTokenContract(
@@ -335,6 +387,21 @@ function Pool() {
     });
   };
 
+  const insertMax = (coin) => {
+    if (coin === "USDT") {
+      setAmount(usdtBalance);
+    }
+
+    if (coin === "USDC") {
+      setAmount(usdcBalance);
+    }
+  };
+
+  const onAmountChange = async (event) => {
+    const amt = event.target.value;
+    setAmount(amt);
+  };
+
   const steps = [`Approve ${selectedToken}`, "Mint SCF"];
 
   return (
@@ -346,7 +413,7 @@ function Pool() {
           align="center"
           sx={{ fontSize: 30, color: "#222" }}
         >
-          <p>Mint $SCF using $USDT or $USDC</p>{" "}
+          <p>Mint $SCF using $USDT or $USDC</p>
         </Heading>
         <InfoBox>
           <Grid container spacing={2}>
@@ -368,7 +435,7 @@ function Pool() {
             </Grid>
             <Grid item xs={6}>
               <Typography variant="h5" component="h5" align="center">
-                {nextReward} SCF
+                ~${nextReward}
               </Typography>
               <Typography variant="p" component="p" align="center">
                 Your Next Reward
@@ -387,7 +454,6 @@ function Pool() {
             </Grid>
           </Grid>
         </InfoBox>
-
         <InputWrapper>
           <FormControl fullWidth>
             <Input
@@ -395,24 +461,39 @@ function Pool() {
               value={amount}
               type="number"
               color="secondary"
-              onChange={(event) => {
-                setAmount(event.target.value);
-              }}
+              onChange={onAmountChange}
               endAdornment={<TokenSelection />}
               label="Amount"
             />
           </FormControl>
         </InputWrapper>
+        <EstimatedToken>
+          <Typography variant="p" component="p">
+            You will receive ~{estimatedScf} SCF and ~{estimatedScfBonus} SCF
+            reward.
+          </Typography>
+        </EstimatedToken>
+
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <EntryBox>
-              <Typography variant="p" component="p" align="center">
+              <Typography
+                variant="a"
+                component="a"
+                align="center"
+                onClick={() => insertMax("USDT")}
+              >
                 {usdtBalance} <b>USDT</b>
               </Typography>
-              <Typography variant="p" component="p" align="center">
+              <Typography
+                variant="a"
+                component="a"
+                align="center"
+                onClick={() => insertMax("USDC")}
+              >
                 {usdcBalance} <b>USDC</b>
               </Typography>
-              <Typography variant="p" component="p" align="center">
+              <Typography variant="a" component="a" align="center">
                 {scfBalance} <b>SCF</b>
               </Typography>
             </EntryBox>
@@ -423,7 +504,7 @@ function Pool() {
                 if (allowance) {
                   mintSCF();
                 } else {
-                  handleOpen();
+                  handleActionOpen();
                 }
               }}
             >
@@ -444,9 +525,19 @@ function Pool() {
               <></>
             )}
 
+            <FooterInfo>
+              <Typography
+                variant="p"
+                component="p"
+                onClick={() => handleInfoOpen()}
+              >
+                Learn how stable coin factory works
+              </Typography>
+            </FooterInfo>
+
             <Modal
-              open={open}
-              onClose={handleClose}
+              open={actionOpen}
+              onClose={handleActionClose}
               aria-labelledby="modal-modal-title"
               aria-describedby="modal-modal-description"
             >
@@ -487,6 +578,23 @@ function Pool() {
                 )}
               </CustomModalBox>
             </Modal>
+
+            <Modal
+              open={infoOpen}
+              onClose={handleInfoClose}
+              aria-labelledby="modal-modal-title"
+              aria-describedby="modal-modal-description"
+            >
+              <CustomModalBox>
+                <h1>How Stable Coin Protocol works?</h1>
+                <ul>
+                  <li>First, You deposit USDT or USDT and get SCF token.</li>
+                  <li>Your SCF token will be locked for 10 days.</li>
+                  <li>You can withdraw your token with additional reward.</li>
+                  <li>Enjoy your reward.</li>
+                </ul>
+              </CustomModalBox>
+            </Modal>
           </Grid>
         </Grid>
         <Snackbar
@@ -508,12 +616,31 @@ function Pool() {
   );
 }
 
+const EstimatedToken = styled.div`
+  padding: 0 0 24px 0;
+  display: flex;
+  justify-content: center;
+`;
+
 const EntryBox = styled.div`
   border-radius: 4px;
   display: flex;
   justify-content: center;
-  p {
+  a {
     padding: 0 16px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+`;
+
+const FooterInfo = styled.div`
+  padding: 16px 0 0 0;
+  display: flex;
+  justify-content: center;
+  p {
+    text-decoration: underline;
+    cursor: pointer;
+    color: #5352ed;
   }
 `;
 
