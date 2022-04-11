@@ -40,17 +40,14 @@ const Landing = (props) => {
           >
             Connect Your Wallet
           </ConnectButton>
-          <Modal
-            open={open}
-            onClose={handleClose}
-            aria-labelledby="modal-modal-title"
-            aria-describedby="modal-modal-description"
-          >
-            <Connection
-              connectorsByName={connectorsByName}
-              activate={activate}
-              setActivatingConnector={setActivatingConnector}
-            />
+          <Modal open={open} onClose={handleClose}>
+            <div>
+              <Connection
+                connectorsByName={connectorsByName}
+                activate={activate}
+                setActivatingConnector={setActivatingConnector}
+              />
+            </div>
           </Modal>
         </div>
         <div>

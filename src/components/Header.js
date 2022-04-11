@@ -163,7 +163,6 @@ const Header = (props) => {
                     </div>
 
                     <IconButton
-                      fullWidth
                       onClick={disconnect}
                       color="error"
                       style={{

@@ -8,12 +8,13 @@ import Pool from "./Pool";
 import Deposits from "./Deposits/index";
 import BottomNav from "./../components/BottomNav";
 import Rewards from "./Rewards";
+import styled from "@emotion/styled";
 
 const Home = () => {
   return (
     <>
       <Header />
-      <Container maxWidth="md">
+      <StyledContainer maxWidth="md">
         <Web3Wrapper>
           <Routes>
             <Route exact path="/" element={<Pool />} />
@@ -21,10 +22,14 @@ const Home = () => {
             <Route exact path="/rewards" element={<Rewards />} />
           </Routes>
         </Web3Wrapper>
-      </Container>
+      </StyledContainer>
       <BottomNav />
     </>
   );
 };
+
+const StyledContainer = styled(Container)`
+  padding-bottom: 120px;
+`;
 
 export default Home;

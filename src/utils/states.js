@@ -10,6 +10,11 @@ export const usdcTvlState = atom({
   default: 0,
 });
 
+export const epochBonusState = atom({
+  key: "epochBonus",
+  default: 0,
+});
+
 export const nextRewardState = atom({
   key: "nextReward",
   default: 0,
@@ -19,7 +24,6 @@ export const nextRewardTokenState = atom({
   key: "nextRewardToken",
   default: 0,
 });
-
 
 export const pendingTimeState = atom({
   key: "pendingTime",

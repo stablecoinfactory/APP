@@ -65,4 +65,5 @@ export default function BottomNav() {
 
 const BottomBar = styled(BottomNavigation)`
   background: #e9e9e9;
+  z-index: 999999;
 `;
