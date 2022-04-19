@@ -93,7 +93,7 @@ function Deposits() {
                 >
                   <TableCell component="th" scope="row">
                     <a
-                      href={`https://www.bscscan.com/address/${row.address}`}
+                      href={`https://polygonscan.com/address/${row.address}`}
                       target="_blank"
                       rel="noreferrer"
                     >
